@@ -5,13 +5,17 @@ import { AuthRequest } from "../middleware/auth";
 export const getTasks = async (req: Request, res: Response) => {
   try {
     const userId = (req as AuthRequest).user?.id;
+    if (!userId) {
+      return res.status(400).json({ message: "User ID not found" });
+    }
     const tasks = await Task.find({ user: userId }).sort({
       order: 1,
       createdAt: -1,
     });
     res.status(200).json(tasks);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching tasks", error });
+    console.error("Error fetching tasks:", error);
+    res.status(500).json({ message: "Error fetching tasks" });
   }
 };
 
@@ -27,6 +31,17 @@ export const createTask = async (req: Request, res: Response) => {
         .json({ message: "Title and Due Date are required" });
     }
 
+    // Validate due date is not in the past
+    const dueDateObj = new Date(dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+    
+    if (dueDateObj < today) {
+      return res
+        .status(400)
+        .json({ message: "Due date must be today or in the future" });
+    }
+
     const newTask = new Task({
       user: userId,
       title,
@@ -38,7 +53,8 @@ export const createTask = async (req: Request, res: Response) => {
     const savedTask = await newTask.save();
     res.status(201).json(savedTask);
   } catch (error) {
-    res.status(500).json({ message: "Error creating task", error });
+    console.error("Error creating task:", error);
+    res.status(500).json({ message: "Error creating task" });
   }
 };
 
@@ -62,7 +78,8 @@ export const updateTask = async (req: Request, res: Response) => {
 
     res.status(200).json(updatedTask);
   } catch (error) {
-    res.status(500).json({ message: "Error updating task", error });
+    console.error("Error updating task:", error);
+    res.status(500).json({ message: "Error updating task" });
   }
 };
 
@@ -79,6 +96,7 @@ export const deleteTask = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: "Task deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting task", error });
+    console.error("Error deleting task:", error);
+    res.status(500).json({ message: "Error deleting task" });
   }
 };

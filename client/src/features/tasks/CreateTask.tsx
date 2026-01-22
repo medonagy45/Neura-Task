@@ -5,18 +5,33 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { addNewTask } from "./tasksSlice";
 import type { AppDispatch } from "../../store";
-import type { CreateTaskDto } from "../../types";
+import type { CreateTaskData } from "../../types";
 
 const CreateTask: React.FC = () => {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<CreateTaskDto>();
+  } = useForm<CreateTaskData>({
+    defaultValues: {
+      dueDate: new Date().toISOString().split('T')[0], // Set today's date as default
+    },
+  });
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const onSubmit: SubmitHandler<CreateTaskDto> = async (data) => {
+  const validateFutureDate = (value: string) => {
+    const selectedDate = new Date(value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+    
+    if (selectedDate < today) {
+      return "Due date must be today or in the future";
+    }
+    return true;
+  };
+
+  const onSubmit: SubmitHandler<CreateTaskData> = async (data) => {
     try {
       await dispatch(addNewTask(data)).unwrap();
       toast.success("Task created successfully!");
@@ -63,7 +78,11 @@ const CreateTask: React.FC = () => {
           </label>
           <input
             type="date"
-            {...register("dueDate", { required: "Due Date is required" })}
+            {...register("dueDate", { 
+              required: "Due Date is required",
+              validate: validateFutureDate
+            })}
+            min={new Date().toISOString().split('T')[0]} // Set min attribute to today
             className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border ${errors.dueDate ? "border-red-500" : ""}`}
           />
           {errors.dueDate && (

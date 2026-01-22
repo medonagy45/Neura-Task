@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { format } from "date-fns";
 import { toast } from "react-toastify";
 import { Draggable } from "@hello-pangea/dnd";
-import { updateTaskStatus, deleteTask } from "../tasks/tasksSlice";
+import {
+  updateTaskStatus,
+  deleteTask,
+  moveTaskOptimistically,
+} from "../tasks/tasksSlice";
 import type { AppDispatch } from "../../store";
 import type { Task } from "../../types";
 
@@ -14,9 +18,30 @@ interface TaskCardProps {
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, index }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showMenu]);
 
   const handleMove = async (newStatus: "todo" | "in-progress" | "done") => {
     if (task.status === newStatus) return;
+    // Optimistic update
+    dispatch(moveTaskOptimistically({ id: task._id, status: newStatus }));
     try {
       await dispatch(
         updateTaskStatus({
@@ -25,7 +50,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index }) => {
         }),
       ).unwrap();
       toast.success(`Moved to ${newStatus}`);
+      setShowMenu(false);
     } catch (err) {
+      // Revert optimistic update
+      dispatch(moveTaskOptimistically({ id: task._id, status: task.status }));
       toast.error("Failed to move task");
       console.error("Failed to move task:", err);
     }
@@ -36,6 +64,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index }) => {
       try {
         await dispatch(deleteTask(task._id)).unwrap();
         toast.info("Task deleted");
+        setShowMenu(false);
       } catch (err) {
         toast.error("Failed to delete task");
         console.error("Failed to delete task:", err);
@@ -57,48 +86,53 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index }) => {
             <h3 className="font-semibold text-lg text-gray-800">
               {task.title}
             </h3>
-            <div className="relative group">
-              <button className="text-gray-400 hover:text-gray-600 focus:outline-none">
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="text-gray-400 hover:text-gray-600 focus:outline-none w-3"
+              >
                 &#8942;
               </button>
-              <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-lg hidden group-hover:block z-10">
-                <div className="py-1">
-                  <p className="px-4 py-2 text-xs text-gray-500 font-semibold uppercase tracking-wider">
-                    Move to
-                  </p>
-                  {task.status !== "todo" && (
+              {showMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-lg z-10">
+                  <div className="py-1">
+                    <p className="px-4 py-2 text-xs text-gray-500 font-semibold uppercase tracking-wider">
+                      Move to
+                    </p>
+                    {task.status !== "todo" && (
+                      <button
+                        onClick={() => handleMove("todo")}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        To Do
+                      </button>
+                    )}
+                    {task.status !== "in-progress" && (
+                      <button
+                        onClick={() => handleMove("in-progress")}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        In Progress
+                      </button>
+                    )}
+                    {task.status !== "done" && (
+                      <button
+                        onClick={() => handleMove("done")}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Done
+                      </button>
+                    )}
+                    <div className="border-t my-1"></div>
                     <button
-                      onClick={() => handleMove("todo")}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={handleDelete}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                     >
-                      To Do
+                      Delete
                     </button>
-                  )}
-                  {task.status !== "in-progress" && (
-                    <button
-                      onClick={() => handleMove("in-progress")}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      In Progress
-                    </button>
-                  )}
-                  {task.status !== "done" && (
-                    <button
-                      onClick={() => handleMove("done")}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Done
-                    </button>
-                  )}
-                  <div className="border-t my-1"></div>
-                  <button
-                    onClick={handleDelete}
-                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                  >
-                    Delete
-                  </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 

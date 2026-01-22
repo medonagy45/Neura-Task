@@ -3,7 +3,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "react-toastify";
 import type { RootState, AppDispatch } from "../../store";
-import { fetchTasks, updateTaskStatus } from "../tasks/tasksSlice";
+import {
+  fetchTasks,
+  updateTaskStatus,
+  moveTaskOptimistically,
+} from "../tasks/tasksSlice";
 import TaskCard from "./TaskCard";
 import type { Task } from "../../types";
 
@@ -58,6 +62,19 @@ const Board: React.FC = () => {
     }
   }, [status, dispatch]);
 
+  const sortedItems = [...items].sort((a, b) => {
+    if (a.order !== b.order) {
+      return a.order - b.order;
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  const tasksByStatus = {
+    todo: sortedItems.filter((task) => task.status === "todo"),
+    "in-progress": sortedItems.filter((task) => task.status === "in-progress"),
+    done: sortedItems.filter((task) => task.status === "done"),
+  };
+
   const onDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
@@ -75,29 +92,47 @@ const Board: React.FC = () => {
       | "in-progress"
       | "done";
 
-    // Optimistic update could go here (update local state immediately)
-    // For now, we just dispatch API call and let Redux handle the refresh/update
-    // Note: To make it smooth, we usually update local state first.
-    // Since we are relying on backend for single source of truth and not strictly handling "order" persistence complexly yet,
-    // we just update status. The list might jump if sorting changes.
+    // Calculate new order
+    const destTasks = tasksByStatus[newStatus];
+    const relevantTasks = destTasks.filter((t) => t._id !== draggableId);
+
+    const prevTask = relevantTasks[destination.index - 1];
+    const nextTask = relevantTasks[destination.index];
+
+    let newOrder = 0;
+    if (!prevTask && !nextTask) {
+      newOrder = 1000;
+    } else if (!prevTask) {
+      newOrder = nextTask.order / 2;
+    } else if (!nextTask) {
+      newOrder = prevTask.order + 1000;
+    } else {
+      newOrder = (prevTask.order + nextTask.order) / 2;
+    }
+
+    // Optimistic update
+    dispatch(
+      moveTaskOptimistically({
+        id: draggableId,
+        status: newStatus,
+        order: newOrder,
+      }),
+    );
 
     try {
       await dispatch(
         updateTaskStatus({
           id: draggableId,
-          updates: { status: newStatus }, // We are only updating status, not order index in DB for now
+          updates: { status: newStatus, order: newOrder },
         }),
       ).unwrap();
     } catch (err) {
+      // Revert optimistic update
+      const oldStatus = source.droppableId as "todo" | "in-progress" | "done";
+      dispatch(moveTaskOptimistically({ id: draggableId, status: oldStatus }));
       console.error(err);
       toast.error("Failed to move task");
     }
-  };
-
-  const tasksByStatus = {
-    todo: items.filter((task) => task.status === "todo"),
-    "in-progress": items.filter((task) => task.status === "in-progress"),
-    done: items.filter((task) => task.status === "done"),
   };
 
   if (status === "loading") {

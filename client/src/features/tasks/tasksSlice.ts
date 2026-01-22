@@ -1,6 +1,11 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  createAsyncThunk,
+  type PayloadAction,
+} from "@reduxjs/toolkit";
 import client from "../../api/client";
-import type { Task, CreateTaskDto, UpdateTaskDto } from "../../types";
+import type { Task, CreateTaskData, UpdateTaskData } from "../../types";
+import { logout } from "../auth/authSlice";
 
 interface TasksState {
   items: Task[];
@@ -21,7 +26,7 @@ export const fetchTasks = createAsyncThunk("tasks/fetchTasks", async () => {
 
 export const addNewTask = createAsyncThunk(
   "tasks/addNewTask",
-  async (initialTask: CreateTaskDto) => {
+  async (initialTask: CreateTaskData) => {
     const response = await client.post<Task>("/tasks", initialTask);
     return response.data;
   },
@@ -29,7 +34,7 @@ export const addNewTask = createAsyncThunk(
 
 export const updateTaskStatus = createAsyncThunk(
   "tasks/updateTaskStatus",
-  async ({ id, updates }: { id: string; updates: UpdateTaskDto }) => {
+  async ({ id, updates }: { id: string; updates: UpdateTaskData }) => {
     const response = await client.put<Task>(`/tasks/${id}`, updates);
     return response.data;
   },
@@ -46,9 +51,32 @@ export const deleteTask = createAsyncThunk(
 const tasksSlice = createSlice({
   name: "tasks",
   initialState,
-  reducers: {},
+  reducers: {
+    moveTaskOptimistically: (
+      state,
+      action: PayloadAction<{
+        id: string;
+        status: Task["status"];
+        order?: number;
+      }>,
+    ) => {
+      const { id, status, order } = action.payload;
+      const task = state.items.find((t) => t._id === id);
+      if (task) {
+        task.status = status;
+        if (order !== undefined) {
+          task.order = order;
+        }
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
+      .addCase(logout, (state) => {
+        state.items = [];
+        state.status = "idle";
+        state.error = null;
+      })
       .addCase(fetchTasks.pending, (state) => {
         state.status = "loading";
       })
@@ -77,4 +105,5 @@ const tasksSlice = createSlice({
   },
 });
 
+export const { moveTaskOptimistically } = tasksSlice.actions;
 export default tasksSlice.reducer;
