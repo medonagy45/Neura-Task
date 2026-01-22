@@ -3,23 +3,28 @@ export interface Task {
   title: string;
   description?: string;
   status: "todo" | "in-progress" | "done";
-  dueDate: string; // ISO date string from backend
+  dueDate: string;
   order: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface CreateTaskDto {
+export interface CreateTaskData {
   title: string;
   description?: string;
   dueDate: string;
   status?: "todo" | "in-progress" | "done";
 }
 
-export interface UpdateTaskDto {
+export interface UpdateTaskData {
   title?: string;
   description?: string;
-  dueDate?: string;
   status?: "todo" | "in-progress" | "done";
+  dueDate?: string;
   order?: number;
+}
+
+export interface AuthData {
+  username: string;
+  password?: string;
 }

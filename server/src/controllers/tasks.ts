@@ -1,9 +1,14 @@
 import { Request, Response } from "express";
 import Task, { ITask } from "../models/Task";
+import { AuthRequest } from "../middleware/auth";
 
 export const getTasks = async (req: Request, res: Response) => {
   try {
-    const tasks = await Task.find().sort({ order: 1, createdAt: -1 });
+    const userId = (req as AuthRequest).user?.id;
+    const tasks = await Task.find({ user: userId }).sort({
+      order: 1,
+      createdAt: -1,
+    });
     res.status(200).json(tasks);
   } catch (error) {
     res.status(500).json({ message: "Error fetching tasks", error });
@@ -13,6 +18,7 @@ export const getTasks = async (req: Request, res: Response) => {
 export const createTask = async (req: Request, res: Response) => {
   try {
     const { title, description, dueDate, status } = req.body;
+    const userId = (req as AuthRequest).user?.id;
 
     // Simple validation
     if (!title || !dueDate) {
@@ -22,6 +28,7 @@ export const createTask = async (req: Request, res: Response) => {
     }
 
     const newTask = new Task({
+      user: userId,
       title,
       description,
       dueDate,
@@ -39,10 +46,15 @@ export const updateTask = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+    const userId = (req as AuthRequest).user?.id;
 
-    const updatedTask = await Task.findByIdAndUpdate(id, updates, {
-      new: true,
-    });
+    const updatedTask = await Task.findOneAndUpdate(
+      { _id: id, user: userId },
+      updates,
+      {
+        new: true,
+      },
+    );
 
     if (!updatedTask) {
       return res.status(404).json({ message: "Task not found" });
@@ -57,7 +69,9 @@ export const updateTask = async (req: Request, res: Response) => {
 export const deleteTask = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deletedTask = await Task.findByIdAndDelete(id);
+    const userId = (req as AuthRequest).user?.id;
+
+    const deletedTask = await Task.findOneAndDelete({ _id: id, user: userId });
 
     if (!deletedTask) {
       return res.status(404).json({ message: "Task not found" });

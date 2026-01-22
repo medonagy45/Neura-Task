@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITask extends Document {
+  user: mongoose.Types.ObjectId;
   title: string;
   description?: string;
   status: "todo" | "in-progress" | "done";
@@ -12,6 +13,7 @@ export interface ITask extends Document {
 
 const TaskSchema: Schema = new Schema(
   {
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     title: { type: String, required: true },
     description: { type: String },
     status: {

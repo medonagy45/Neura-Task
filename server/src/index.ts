@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import taskRoutes from "./routes/tasks";
+import authRoutes from "./routes/auth";
 
 dotenv.config();
 
@@ -12,10 +13,15 @@ const MONGO_URI =
   process.env.MONGO_URI || "mongodb://localhost:27017/neura-task";
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "*", // Allow all origins for development
+  }),
+);
 app.use(express.json());
 
 // Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 
 // Database Connection
