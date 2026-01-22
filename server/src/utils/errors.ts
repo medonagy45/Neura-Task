@@ -1,5 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 
+interface ErrorResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  error?: string;
+  stack?: string;
+}
+
 export class AppError extends Error {
   statusCode: number;
   isOperational: boolean;
@@ -19,7 +27,7 @@ export const errorHandler = (
   next: NextFunction,
 ) => {
   // Default to 500 if no status code
-  const statusCode = (err as any).statusCode || 500;
+  const statusCode = "statusCode" in err ? (err as AppError).statusCode : 500;
   const message = err.message || "Internal Server Error";
 
   // Log error for debugging (in production, use proper logging service)
@@ -41,7 +49,7 @@ export const errorHandler = (
   }
 
   // Don't expose stack traces in production
-  const response: any = {
+  const response: ErrorResponse = {
     success: false,
     message,
     statusCode,
