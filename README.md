@@ -5,8 +5,8 @@ A modern Kanban-style task management application built with the MERN stack (Mon
 ## Features
 
 - **Kanban Board**: Drag-and-drop task management across To Do, In Progress, and Done columns
-- **Task Management**: Create, edit, move, and delete tasks
-- **User Authentication**: Secure JWT-based authentication with password complexity requirements
+- **Task Management**: Create, move, and delete tasks
+- **User Authentication**: Secure JWT-based authentication with password validation (minimum 6 characters)
 - **Real-time Updates**: Optimistic UI updates with automatic reversion on errors
 - **Responsive Design**: Works on desktop and mobile devices
 - **Modern UI**: Built with Tailwind CSS and React 19
@@ -14,6 +14,7 @@ A modern Kanban-style task management application built with the MERN stack (Mon
 ## Tech Stack
 
 ### Frontend
+
 - React 19 with TypeScript
 - Redux Toolkit for state management
 - React Router DOM for navigation
@@ -25,6 +26,7 @@ A modern Kanban-style task management application built with the MERN stack (Mon
 - React Toastify for notifications
 
 ### Backend
+
 - Node.js with Express
 - MongoDB with Mongoose
 - JWT (jsonwebtoken) for authentication
@@ -141,6 +143,7 @@ npm start
 ```
 
 This runs both servers concurrently:
+
 - Server: http://localhost:5000
 - Client: http://localhost:5173
 
@@ -165,14 +168,16 @@ Neura-Task/
 ├── client/                 # Frontend React application
 │   ├── src/
 │   │   ├── api/        # API client configuration
-│   │   ├── components/  # Reusable components
+│   │   ├── components/  # Reusable components (empty)
 │   │   ├── features/    # Feature-based modules
 │   │   │   ├── auth/      # Authentication components and state
 │   │   │   ├── board/     # Kanban board component
 │   │   │   └── tasks/     # Task management
 │   │   ├── store/       # Redux store configuration
 │   │   ├── types/       # TypeScript type definitions
-│   │   └── App.tsx      # Main app component
+│   │   ├── App.tsx      # Main app component
+│   │   ├── main.tsx     # Application entry point
+│   │   └── index.css    # Global styles
 │   ├── package.json
 │   └── vite.config.ts
 ├── server/                 # Backend Express application
@@ -194,33 +199,25 @@ Neura-Task/
 
 ### Authentication
 
-| Method | Endpoint | Description | Body |
-|---------|-----------|-------------|--------|
-| POST | `/api/auth/register` | Register new user | `{ username, password }` |
-| POST | `/api/auth/login` | Login user | `{ username, password }` |
+| Method | Endpoint             | Description       | Body                     |
+| ------ | -------------------- | ----------------- | ------------------------ |
+| POST   | `/api/auth/register` | Register new user | `{ username, password }` |
+| POST   | `/api/auth/login`    | Login user        | `{ username, password }` |
 
 ### Tasks
 
-| Method | Endpoint | Description | Body |
-|---------|-----------|-------------|--------|
-| GET | `/api/tasks` | Fetch all tasks for authenticated user | - |
-| POST | `/api/tasks` | Create new task | `{ title, description, dueDate, status }` |
-| PUT | `/api/tasks/:id` | Update task | `{ title, description, status, dueDate, order }` |
-| DELETE | `/api/tasks/:id` | Delete task | - |
-
-## Password Requirements
-
-- Minimum 8 characters
-- At least one uppercase letter
-- At least one lowercase letter
-- At least one number
-- At least one special character (@$!%*?&)
+| Method | Endpoint         | Description                            | Body                                             |
+| ------ | ---------------- | -------------------------------------- | ------------------------------------------------ |
+| GET    | `/api/tasks`     | Fetch all tasks for authenticated user | -                                                |
+| POST   | `/api/tasks`     | Create new task                        | `{ title, description, dueDate, status }`        |
+| PUT    | `/api/tasks/:id` | Update task                            | `{ title, description, status, dueDate, order }` |
+| DELETE | `/api/tasks/:id` | Delete task                            | -                                                |
 
 ## Security Features
 
 - **JWT Authentication**: Secure token-based authentication
 - **Password Hashing**: bcryptjs with salt rounds of 10
-- **Input Sanitization**: Protection against NoSQL injection attacks
+- **Password Validation**: Minimum 6 characters required
 - **CORS**: Configurable CORS for cross-origin requests
 - **Token Expiry**: 1-hour session timeout with automatic logout
 
